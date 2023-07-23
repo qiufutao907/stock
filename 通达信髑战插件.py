@@ -246,26 +246,21 @@ def main():
                 count_lt_5_dict[category_name] += 1
                 stocks_lt_5_dict[category_name].append((code, stock_name, 髑战))
 
-    print("\n按分类分组的髑战值：")
-    print("------------------------")
+    category_result_list = []
+
     for category, stocks in categorized_duzhan_dict.items():
-        print(f"\n分类：{category}")
         for code, info in stocks.items():
-            print(f"股票代码: {code}, 股票名称: {info['name']}, 髑战值: {info['duzhan']}")
+            category_result_list.append({'分类': category, '股票代码': code, '股票名称': info['name'], '髑战值': info['duzhan']})
 
-    print("\n髑战值大于等于95的个数及对应的股票代码和名称：")
-    for category, count in count_gt_95_dict.items():
-        print(f"{category}: {count}")
-        for stock_info in stocks_gt_95_dict[category]:
-            print(f"股票代码: {stock_info[0]}, 股票名称: {stock_info[1]}, 髑战值: {stock_info[2]}")
+    # 创建DataFrame对象
+    df_result = pd.DataFrame(category_result_list)
 
-    print("\n髑战值小于5的个数及对应的股票代码和名称：")
-    for category, count in count_lt_5_dict.items():
-        print(f"{category}: {count}")
-        for stock_info in stocks_lt_5_dict[category]:
-            print(f"股票代码: {stock_info[0]}, 股票名称: {stock_info[1]}, 髑战值: {stock_info[2]}")
+    # 打印DataFrame
+    print(df_result)
+    # 保存DataFrame为CSV文件
+    df_result.to_csv('result.csv', index=False, encoding='gbk')
 
-
+       
 
 if __name__ == "__main__":
     main()
