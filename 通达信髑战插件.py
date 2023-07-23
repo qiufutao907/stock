@@ -188,35 +188,58 @@ def read_xlsx_files_in_folder(folder_path):
                     print(f"处理文件时出错：{file_name} -> 工作表：{sheet_name}。数据格式无效。")
     return result_dict
 
+def DEFEN_stocks(duzhan_value, N1=1.8, N2=1.8):
+    def REF(S, N=1):
+        return S.shift(N)
+
+    def MAX(S1, S2):
+        return np.maximum(S1, S2)
+
+    def ABS(S):
+        return np.abs(S)
+
+    # Define HHV function (Assuming it returns the highest value in a series)
+    def HHV(S, N):
+        return pd.Series(S).rolling(N).max().values
+
+    # Define RD function for rounding (Custom implementation based on context)
+    def RD(x, D=2):
+        return round(x, D)
+
+    # 获取数据
+    OPEN = duzhan_value['open']
+    CLOSE = duzhan_value['close']
+    HIGH = duzhan_value['high']
+    LOW = duzhan_value['low']
+    VOL = duzhan_value['volume']    
+    X_1 = MAX(MAX(HIGH - LOW, ABS(REF(CLOSE, 1) - HIGH)), ABS(REF(CLOSE, 1) - LOW))
+    ATR = X_1.rolling(5).mean()
+    DEFEN0 = HHV(CLOSE, 5) - 1.8 * ATR
+    DEFEN1 = REF(CLOSE, 1) * 0.929
+    if DEFEN0[-1] - DEFEN1[-1] > 0:
+        DEFEN = DEFEN0[-1]
+    else:
+        DEFEN = DEFEN1[-1]
+    DEFEN = RD(DEFEN, D=2)
+
+    return DEFEN
+
 def main():
     folder_path = r"C:\Users\Administrator\Projects\Daily_tdx\BK"
     result_dict = read_xlsx_files_in_folder(folder_path)
 
-    # 创建一个字典来存储股票代码和对应的髑战值
-    duzhan_dict = {}
-
     tdx_reader = TdxReader()
 
-    # 多个代码列表
+    # Define the code_lists variable
     code_lists = [code_etf_list, code_qz_list, code_bm_list, code_kj_list,
                   code_zq_list, code_cz_list, code_lhbm_list, code_jgg_list, code_hsa_list]
 
-    # 多个代码列表对应的分类名
+
     category_names = ['ETF', 'QZ', 'BM', 'KJ', 'ZQ', 'CZ', 'LHBM', 'JGG', 'HSA']
-    # 创建一个字典来存储按分类分组的髑战值
     categorized_duzhan_dict = {category: {} for category in category_names}
 
-    # 创建一个字典来存储髑战值大于等于95和小于5的个数及对应的股票代码和名称
-    count_gt_95_dict = {category: 0 for category in category_names}
-    count_lt_5_dict = {category: 0 for category in category_names}
-    stocks_gt_95_dict = {category: [] for category in category_names}
-    stocks_lt_5_dict = {category: [] for category in category_names}
-
-    # 遍历多个代码列表和分类名
     for code_list, category_name in zip(code_lists, category_names):
-        # 遍历股票代码列表并计算髑战值，然后存储到字典中
         for code in code_list:
-            # 过滤掉以688开头的股票代码
             if code.startswith("688"):
                 continue
 
@@ -226,41 +249,40 @@ def main():
                 print(f"Unknown security type for stock code: {code}, skipping calculation.")
                 continue
             髑战 = calculate_duzhan(duzhan_value)
+            防守价 = DEFEN_stocks(duzhan_value)  # Calculate DEFEN
 
-            # 获取股票名称，如果result_dict中没有对应的分类名或股票代码，使用"未知"作为默认值
             stock_name = result_dict.get(category_name, {}).get(code, "未知")
+            CLOSE = duzhan_value['close']
 
-            # 将结果存储到duzhan_dict中
-            duzhan_dict[code] = {'name': stock_name, 'duzhan': 髑战}
-            # 将结果存储到按分类分组的字典中
-            categorized_duzhan_dict[category_name][code] = {'name': stock_name, 'duzhan': 髑战}
-
-            # 判断髑战值是否大于等于95或小于5，并进行计数和记录对应的股票代码和名称
-            if 髑战 >= 95:
-                count_gt_95_dict[category_name] += 1
-                stocks_gt_95_dict[category_name].append((code, stock_name, 髑战))
-            elif 髑战 < 5:
-                count_lt_5_dict[category_name] += 1
-                stocks_lt_5_dict[category_name].append((code, stock_name, 髑战)) 
+            categorized_duzhan_dict[category_name][code] = {'name': stock_name, 'duzhan': 髑战, '防守价': 防守价, '收盘价': CLOSE[-1]}
 
     category_result_list = []
 
     for category, stocks in categorized_duzhan_dict.items():
         for code, info in stocks.items():
-            category_result_list.append({'分类': category, '股票代码': code, '股票名称': info['name'], '髑战值': info['duzhan']})
-
-    # 创建DataFrame对象
+            category_result_list.append({'分类': category, '股票代码': code, '股票名称': info['name'], '髑战值': info['duzhan'], '防守价': info['防守价'],'收盘价': info['收盘价']})   
+   
     df_result = pd.DataFrame(category_result_list)
+    category_mapping = {
+        'ETF': 'ETF类',
+        'QZ': '权重类',
+        'BM': '白马类',
+        'KJ': '科技类',
+        'ZQ': '周期类',
+        'CZ': '传媒类',
+        'LHBM': '板块龙头类',
+        'JGG': '机构股类',
+        'HSA': '沪深A类'
+    }
+    df_result['分类'] = df_result['分类'].map(category_mapping)
+    summary = df_result.groupby('分类').agg(总股票数量=('股票代码', 'count'), 低风险区域股票数量=('髑战值', lambda x: (x >= 95).sum()))
 
-    # 打印DataFrame
-    print(df_result)
-    # 保存DataFrame为CSV文件
+    print(summary)
     df_result.to_csv('result.csv', index=False, encoding='gbk')
-
-       
 
 if __name__ == "__main__":
     main()
+
     
 
 
