@@ -21,7 +21,7 @@ class TdxReader(object):
         df = tdx_read.get_df(code, s)
         df = df.sort_index(ascending=True)
         return df
-
+    
 class TdxBatReader(TdxReader):
     """
     读取tdx日线数据
@@ -59,7 +59,7 @@ class TdxBatReader(TdxReader):
 
     def get_df_by_file(self, fname):
         if not os.path.isfile(fname):
-            print('no tdx kline data, please check path %s' % fname)
+            print('no tdx kline data, please check path %s' % fname)            
 
         security_type = self.get_security_type(fname)
         if security_type not in self.SECURITY_TYPE:
@@ -101,7 +101,7 @@ class TdxBatReader(TdxReader):
         # print("Code Head:", code_head)
 
         if exchange == self.SECURITY_EXCHANGE[0]:
-            if code_head in ["00", "30"]:
+            if code_head in ["00", "30", "301"]:
                 return "SZ_A_STOCK"
             elif code_head in ["20"]:
                 return "SZ_B_STOCK"
@@ -111,11 +111,10 @@ class TdxBatReader(TdxReader):
                 return "SZ_FUND"
             elif code_head in ["10", "11", "12", "13", "14"]:
                 return "SZ_BOND"
-            elif code_head == "58":  # 新添加的类型
-                return "SH58"
+            
 
         elif exchange == self.SECURITY_EXCHANGE[1]:
-            if code_head in ["60"]:
+            if code_head in ["60","603"]:
                 return "SH_A_STOCK"
             elif code_head in ["90"]:
                 return "SH_B_STOCK"
@@ -134,9 +133,9 @@ class TdxBatReader(TdxReader):
 
     SECURITY_EXCHANGE = ["sz", "sh" ]
     SECURITY_TYPE = ["SH_A_STOCK", "SH_B_STOCK", "SH_INDEX", "SH_FUND",
-                     "SH_BOND", "SZ_A_STOCK", "SZ_B_STOCK", "SZ_INDEX", "SZ_FUND", "SZ_BOND","SH58","SH68"]
+                     "SH_BOND", "SZ_A_STOCK", "SZ_B_STOCK", "SZ_INDEX", "SZ_FUND", "SZ_BOND","SH58"]
     SECURITY_COEFFICIENT = {"SH_A_STOCK": [0.01, 0.01], "SH_B_STOCK": [0.001, 0.01], "SH_INDEX": [0.01, 1.0], "SH_FUND": [0.001, 1.0], "SH_BOND": [
-        0.001, 1.0], "SZ_A_STOCK": [0.01, 0.01], "SZ_B_STOCK": [0.01, 0.01], "SZ_INDEX": [0.01, 1.0], "SZ_FUND": [0.001, 0.01], "SZ_BOND": [0.001, 0.01],"SH58": [0.01, 0.01],"SH68": [0.01, 0.01]}
+        0.001, 1.0], "SZ_A_STOCK": [0.01, 0.01], "SZ_B_STOCK": [0.01, 0.01], "SZ_INDEX": [0.01, 1.0], "SZ_FUND": [0.001, 0.01], "SZ_BOND": [0.001, 0.01],"SH58": [0.01, 0.01]}
 
 
 def convert_to_six_digit_code(lst):
@@ -189,8 +188,6 @@ def read_xlsx_files_in_folder(folder_path):
                     print(f"处理文件时出错：{file_name} -> 工作表：{sheet_name}。数据格式无效。")
     return result_dict
 
-import pandas as pd
-
 def main():
     folder_path = r"C:\Users\Administrator\Projects\Daily_tdx\BK"
     result_dict = read_xlsx_files_in_folder(folder_path)
@@ -202,10 +199,10 @@ def main():
 
     # 多个代码列表
     code_lists = [code_etf_list, code_qz_list, code_bm_list, code_kj_list,
-                  code_zq_list, code_cz_list, code_lhbm_list, code_jgg_list]
+                  code_zq_list, code_cz_list, code_lhbm_list, code_jgg_list, code_hsa_list]
 
     # 多个代码列表对应的分类名
-    category_names = ['ETF', 'QZ', 'BM', 'KJ', 'ZQ', 'CZ', 'LHBM', 'JGG']
+    category_names = ['ETF', 'QZ', 'BM', 'KJ', 'ZQ', 'CZ', 'LHBM', 'JGG', 'HSA']
     # 创建一个字典来存储按分类分组的髑战值
     categorized_duzhan_dict = {category: {} for category in category_names}
 
@@ -244,7 +241,7 @@ def main():
                 stocks_gt_95_dict[category_name].append((code, stock_name, 髑战))
             elif 髑战 < 5:
                 count_lt_5_dict[category_name] += 1
-                stocks_lt_5_dict[category_name].append((code, stock_name, 髑战))
+                stocks_lt_5_dict[category_name].append((code, stock_name, 髑战)) 
 
     category_result_list = []
 
@@ -264,7 +261,7 @@ def main():
 
 if __name__ == "__main__":
     main()
-
+    
 
 
 
